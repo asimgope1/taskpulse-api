@@ -11,14 +11,15 @@ import { validateRequest } from '../middleware/validate';
 import {
   createTaskSchema,
   updateTaskSchema,
-  getTaskByIdSchema
+  getTaskByIdSchema,
+  getTasksQuerySchema
 } from '../schemas/task.schema';
 
 const router = Router();
 
 router.use(requireAuth);
 
-router.get('/', getTasks);
+router.get('/', validateRequest(getTasksQuerySchema), getTasks);
 router.get('/:id', validateRequest(getTaskByIdSchema), getTaskById);
 router.post('/', validateRequest(createTaskSchema), createTask);
 router.patch('/:id', validateRequest(updateTaskSchema), updateTask);

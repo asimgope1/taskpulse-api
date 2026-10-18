@@ -46,6 +46,29 @@ describe('Task Endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.every((t: any) => t.status === 'IN_PROGRESS')).toBe(true);
     });
+
+    it('should paginate results with page and limit', async () => {
+      const res = await request(app)
+        .get('/api/v1/tasks?page=1&limit=1')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.meta.limit).toBe(1);
+      expect(res.body.meta.page).toBe(1);
+      expect(res.body.meta.totalPages).toBeGreaterThanOrEqual(2);
+      expect(res.body.meta.hasNextPage).toBe(true);
+    });
+
+    it('should sort tasks by priority descending', async () => {
+      const res = await request(app)
+        .get('/api/v1/tasks?sortBy=priority&order=desc')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      // tsk_102 is CRITICAL, tsk_101 is HIGH
+      expect(res.body.data[0].priority).toBe('CRITICAL');
+    });
   });
 
   describe('POST /api/v1/tasks', () => {

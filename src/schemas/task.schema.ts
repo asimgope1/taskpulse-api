@@ -32,3 +32,15 @@ export const getTaskByIdSchema = z.object({
     id: z.string().min(1, 'Task ID is required')
   })
 });
+
+export const getTasksQuerySchema = z.object({
+  query: z.object({
+    page: z.string().regex(/^\d+$/).transform(Number).optional().default('1' as any),
+    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10' as any),
+    status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED']).optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+    search: z.string().optional(),
+    sortBy: z.enum(['createdAt', 'dueDate', 'priority']).optional().default('createdAt'),
+    order: z.enum(['asc', 'desc']).optional().default('desc')
+  })
+});
