@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { store } from '../db/store';
-import { NotFoundError, UnauthorizedError } from '../utils/errors';
+import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { TaskStatus, TaskPriority } from '../types';
 
 export const getTasks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -84,11 +84,20 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
 
 export const updateTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
     const id = req.params.id as string;
     const existing = await store.findTaskById(id);
 
     if (!existing) {
       throw new NotFoundError('Task');
+    }
+
+    // Only task creator or an admin can modify task details
+    if (req.user.role !== 'ADMIN' && existing.creatorId !== req.user.userId) {
+      throw new ForbiddenError('You can only update tasks you created');
     }
 
     const updated = await store.updateTask(id, req.body);
@@ -104,11 +113,20 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
 
 export const deleteTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
     const id = req.params.id as string;
     const existing = await store.findTaskById(id);
 
     if (!existing) {
       throw new NotFoundError('Task');
+    }
+
+    // Only task creator or an admin can delete a task
+    if (req.user.role !== 'ADMIN' && existing.creatorId !== req.user.userId) {
+      throw new ForbiddenError('You can only delete tasks you created');
     }
 
     await store.deleteTask(id);
