@@ -24,6 +24,25 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  authorId: string;
+  content: string;
+  createdAt: string;
+}
+
+export type ActivityAction = 'CREATED' | 'UPDATED' | 'STATUS_CHANGED' | 'ASSIGNED' | 'COMMENT_ADDED';
+
+export interface TaskActivity {
+  id: string;
+  taskId: string;
+  userId: string;
+  action: ActivityAction;
+  details: string;
+  timestamp: string;
+}
+
 export interface AuthPayload {
   userId: string;
   email: string;

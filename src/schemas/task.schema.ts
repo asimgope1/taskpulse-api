@@ -32,3 +32,21 @@ export const getTaskByIdSchema = z.object({
     id: z.string().min(1, 'Task ID is required')
   })
 });
+
+export const addCommentSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Task ID is required')
+  }),
+  body: z.object({
+    content: z.string().min(1, 'Comment cannot be empty').max(1000, 'Comment exceeds maximum length of 1000 characters')
+  })
+});
+
+export const assignTaskSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Task ID is required')
+  }),
+  body: z.object({
+    assigneeId: z.string().min(1, 'Assignee ID is required')
+  })
+});

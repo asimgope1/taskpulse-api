@@ -78,4 +78,53 @@ describe('Task Endpoints', () => {
       expect(res.body.success).toBe(false);
     });
   });
+
+  describe('Task Collaboration & Activity', () => {
+    it('should allow adding comments to an existing task and record activity', async () => {
+      const res = await request(app)
+        .post('/api/v1/tasks/tsk_101/comments')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          content: 'Started setting up GitHub Actions workflow.'
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.content).toBe('Started setting up GitHub Actions workflow.');
+
+      const activityRes = await request(app)
+        .get('/api/v1/tasks/tsk_101/activity')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(activityRes.status).toBe(200);
+      expect(activityRes.body.data.comments.length).toBe(1);
+      expect(activityRes.body.data.activities.some((a: any) => a.action === 'COMMENT_ADDED')).toBe(true);
+    });
+
+    it('should successfully reassign a task to another valid member', async () => {
+      const res = await request(app)
+        .post('/api/v1/tasks/tsk_101/assign')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          assigneeId: 'usr_demo_2'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.assigneeId).toBe('usr_demo_2');
+    });
+
+    it('should reject assigning to a non-existent user', async () => {
+      const res = await request(app)
+        .post('/api/v1/tasks/tsk_101/assign')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          assigneeId: 'usr_invalid_999'
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('does not exist');
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { store } from '../db/store';
-import { NotFoundError, UnauthorizedError } from '../utils/errors';
+import { NotFoundError, UnauthorizedError, BadRequestError } from '../utils/errors';
 import { TaskStatus, TaskPriority } from '../types';
 
 export const getTasks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -116,6 +116,96 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
     res.status(200).json({
       success: true,
       message: 'Task deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addComment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
+    const id = req.params.id as string;
+    const task = await store.findTaskById(id);
+
+    if (!task) {
+      throw new NotFoundError('Task');
+    }
+
+    const { content } = req.body;
+    const comment = await store.addComment(id, req.user.userId, content);
+
+    // Record activity audit entry
+    await store.logActivity(id, req.user.userId, 'COMMENT_ADDED', `User added a new comment`);
+
+    res.status(201).json({
+      success: true,
+      data: comment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTaskActivities = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const task = await store.findTaskById(id);
+
+    if (!task) {
+      throw new NotFoundError('Task');
+    }
+
+    const activities = await store.getActivities(id);
+    const comments = await store.getComments(id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        taskId: id,
+        activities,
+        comments
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const assignTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
+    const id = req.params.id as string;
+    const { assigneeId } = req.body;
+
+    const task = await store.findTaskById(id);
+    if (!task) {
+      throw new NotFoundError('Task');
+    }
+
+    const assignee = await store.findUserById(assigneeId);
+    if (!assignee) {
+      throw new BadRequestError(`Assignee user with ID ${assigneeId} does not exist`);
+    }
+
+    const updatedTask = await store.updateTask(id, { assigneeId });
+
+    await store.logActivity(
+      id,
+      req.user.userId,
+      'ASSIGNED',
+      `Task assigned to ${assignee.name} (${assignee.email})`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedTask
     });
   } catch (error) {
     next(error);
