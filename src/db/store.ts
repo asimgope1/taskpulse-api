@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
-import { User, Task } from '../types';
+import { User, Task, TaskComment, TaskActivity } from '../types';
 
 class InMemoryStore {
   private users: Map<string, User> = new Map();
   private tasks: Map<string, Task> = new Map();
+  private comments: Map<string, TaskComment[]> = new Map();
+  private activities: Map<string, TaskActivity[]> = new Map();
 
   constructor() {
     this.seed();
@@ -130,9 +132,55 @@ class InMemoryStore {
     return this.tasks.delete(id);
   }
 
+  // Comment operations
+  public async addComment(taskId: string, authorId: string, content: string): Promise<TaskComment> {
+    const comment: TaskComment = {
+      id: `cmt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      taskId,
+      authorId,
+      content,
+      createdAt: new Date().toISOString()
+    };
+    const taskComments = this.comments.get(taskId) || [];
+    taskComments.push(comment);
+    this.comments.set(taskId, taskComments);
+    return comment;
+  }
+
+  public async getComments(taskId: string): Promise<TaskComment[]> {
+    return this.comments.get(taskId) || [];
+  }
+
+  // Activity operations
+  public async logActivity(
+    taskId: string,
+    userId: string,
+    action: import('../types').ActivityAction,
+    details: string
+  ): Promise<TaskActivity> {
+    const activity: TaskActivity = {
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      taskId,
+      userId,
+      action,
+      details,
+      timestamp: new Date().toISOString()
+    };
+    const list = this.activities.get(taskId) || [];
+    list.push(activity);
+    this.activities.set(taskId, list);
+    return activity;
+  }
+
+  public async getActivities(taskId: string): Promise<TaskActivity[]> {
+    return this.activities.get(taskId) || [];
+  }
+
   public resetForTesting() {
     this.users.clear();
     this.tasks.clear();
+    this.comments.clear();
+    this.activities.clear();
     this.seed();
   }
 }
