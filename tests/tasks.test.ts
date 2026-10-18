@@ -78,4 +78,43 @@ describe('Task Endpoints', () => {
       expect(res.body.success).toBe(false);
     });
   });
+
+  describe('Task Authorization & Access Control', () => {
+    let memberToken: string;
+
+    beforeEach(async () => {
+      // Register a regular member
+      const memberRes = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          name: 'Regular Bob',
+          email: 'bob@example.com',
+          password: 'Password123!',
+          role: 'MEMBER'
+        });
+
+      memberToken = memberRes.body.data.token;
+    });
+
+    it('should block non-creator member from deleting another user task', async () => {
+      // tsk_101 belongs to usr_demo_1, Bob is a separate member
+      const res = await request(app)
+        .delete('/api/v1/tasks/tsk_101')
+        .set('Authorization', `Bearer ${memberToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('only delete tasks you created');
+    });
+
+    it('should allow the task creator or admin to delete the task', async () => {
+      // authToken is admin/creator of tsk_101
+      const res = await request(app)
+        .delete('/api/v1/tasks/tsk_101')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+  });
 });
